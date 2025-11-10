@@ -1,3 +1,5 @@
+## source ~/.pyenv/versions/myvirtualenvproject/bin/activate
+
 from enum import Enum
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional, List
