@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import Optional, List
 import json
 from pydantic import BaseModel
+import os
 
 app = FastAPI()
 
@@ -58,6 +59,16 @@ class Hymn(BaseModel):
     chorus: str
     addedChorus: str
 
+# JSON file path
+DB_FILE = "jcli_hymnbook_new.json"
+
+# Load hymns from JSON
+def load_hymns():
+    if not os.path.exists(DB_FILE):
+        return []
+    with open(DB_FILE, "r") as f:
+        return json.load(f)
+    
 test_hymns = {
     0: Hymn(
         id=1,
@@ -124,15 +135,23 @@ test_hymns = {
 @app.get("/")
 def index() -> dict[str,dict[int, Hymn]]:
     return {"hymns": test_hymns}
-
+'''
 @app.get("/hymns/{hymn_id}")
 def query_hymn_by_id(hymn_id: int) -> Hymn:
     if hymn_id not in test_hymns:
         raise HTTPException(status_code=404, detail=f"Hymn with id {hymn_id} not found")
     return test_hymns[hymn_id]
+'''
+@app.get("/hymns/{hymn_id}")
+def get_hymn(hymn_id: int):
+    hymns = load_hymns()
+    for hymn in hymns:
+        if hymn["id"] == hymn_id:
+            return hymn
+    raise HTTPException(status_code=404, detail="Hymn not found")
 
-Selection = dict[str, int |str | Language | Group |str|str|str|str| None]
-
+Selection = dict[str, int |str | Language | Group | None]
+'''
 @app.get("/hymns/")
 def query_hymn_by_parameters(
     title: str | None = None,
@@ -166,6 +185,7 @@ def query_hymn_by_parameters(
         },
         "selection": selection
     }
+'''
 
 @app.get("/filters")
 async def filter_data(
@@ -177,31 +197,50 @@ async def filter_data(
     verses: Optional[str] = Query(None),
     chorus: Optional[str] = Query(None),
     addedChorus: Optional[str] = Query(None),
-):
+) -> dict[str, Selection]:
+    selection: List[Hymn] = [hymn for hymn in test_hymns.values()]
+    selection_dict: dict[str, int| str| Language | Group | None] = { "hymns": selection }
     # Filter the dataset based on query parameters
     filtered_data = test_hymns.values()
 
     if title:
-        filtered_data = [item for item in filtered_data if title.lower() in item["title"].lower()]
-    if language:
-        filtered_data = [item for item in filtered_data if language.lower() in item["language"].lower()]
+        filtered_data = [item for item in filtered_data if title.lower() in item.title.lower()]
     if group:
-        filtered_data = [item for item in filtered_data if group.lower() in item["group"].lower()]
-    if tunelink:
-        filtered_data = [item for item in filtered_data if tunelink.lower() in item["tunelink"].lower()]
+        filtered_data = [item for item in filtered_data if group.lower() in item.group.value.lower()]
     if verses:
-        filtered_data = [item for item in filtered_data if verses.lower() in item["verses"].lower()]
+        filtered_data = [item for item in filtered_data if verses.lower() in item.verses]
     if chorus:
-        filtered_data = [item for item in filtered_data if chorus.lower() in item["chorus"].lower()]
+        filtered_data = [item for item in filtered_data if chorus.lower() in item.chorus]
     if addedChorus:
-        filtered_data = [item for item in filtered_data if addedChorus.lower() in item["addedChorus"].lower()]
-    return filtered_data
+        filtered_data = [item for item in filtered_data if addedChorus.lower() in item.addedChorus]
+    return {
+        "query": {
+            "title": title,
+            "language": language,
+            "group": group,
+            # Add other query parameters as needed
+        },
+        "selection": selection_dict  # Ensure this matches the expected type
+    }
 '''
     if age:
         filtered_data = [item for item in filtered_data if item["age"] == age]
     if verses:
         filtered_data = [item for item in filtered_data if verses.lower() in [s.lower() for s in item["verses"]]]
+
+
+class Hymn(BaseModel):
+    id: int
+    title: str
+    language: Language
+    group: Group
+    tunelink: str
+    verses: list[str]
+    chorus: str
+    addedChorus: str
+    
 '''
+
 hymns =[{
     "id": 170,
     "title": "Ife pipe to ta ero gbogbo yo",
@@ -293,7 +332,7 @@ dataset = [
     {"name": "Alice", "age": 28, "skills": ["Python", "Ruby", "Go"]},
     {"name": "Bob", "age": 35, "skills": ["Java", "C++"]},
 ]
-
+'''
 # Define a route that handles filtering of the dataset
 @app.get("/filter")
 async def filter_data(
@@ -352,3 +391,4 @@ async def filter_data(
         #filtered_hymns = [item for item in filtered_hymns if skill.lower() in [s.lower() for s in item["skills"]]]
 
     return filtered_hymns
+'''
