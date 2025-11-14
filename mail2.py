@@ -45,7 +45,7 @@ def load_hymns():
     with open(DB_FILE, "r",encoding="utf-8") as f:
         data = json.load(f)
         return data.get("hymns", [])
-    
+'''    
 def search_hymns(search_term: str) -> List[Dict[str, Any]]:
     """Search hymns by title, chorus, addedChorus, or verses."""
     hymns = load_hymns()
@@ -67,6 +67,78 @@ def search_hymns(search_term: str) -> List[Dict[str, Any]]:
         for verse_group in verses:
             # Flatten the list of lines for easier matching
             combined = " ".join(verse_group).lower()
+            if term in combined:
+                matches.append(hymn)
+                break  # Avoid duplicates
+
+    return matches
+'''
+'''
+def search_hymns(search_term: str) -> List[Dict[str, Any]]:
+    """Search hymns by title, chorus, addedChorus, or verses."""
+    hymns = load_hymns()
+    term = search_term.lower()
+    matches = []
+
+    for hymn in hymns:
+        # Search in title, chorus, and addedChorus
+        if (
+            term in hymn.get("title", "").lower()
+            or term in hymn.get("chorus", "").lower()
+            or term in hymn.get("addedChorus", "").lower()
+        ):
+            matches.append(hymn)
+            continue
+
+        # Search in verses
+        verses = hymn.get("verses", [])
+        for verse_group in verses:
+            # Check if verse_group is a list (it should be)
+            if isinstance(verse_group, list):
+                # Flatten the list of lines for easier matching
+                combined = " ".join(verse_group).lower()
+                if term in combined:
+                    matches.append(hymn)
+                    break  # Avoid duplicates
+            # Handle case where verse_group might be a string
+            elif isinstance(verse_group, str):
+                if term in verse_group.lower():
+                    matches.append(hymn)
+                    break
+
+    return matches
+'''
+
+def search_hymns(search_term: str) -> List[Dict[str, Any]]:
+    """Search hymns by title, chorus, addedChorus, or verses."""
+    hymns = load_hymns()
+    term = search_term.lower()
+    matches = []
+
+    for hymn in hymns:
+        # Helper function to safely search in a field that might be a string or list
+        def search_field(field_value):
+            if isinstance(field_value, str):
+                return term in field_value.lower()
+            elif isinstance(field_value, list):
+                # Join list items and search
+                return term in " ".join(str(item) for item in field_value).lower()
+            return False
+
+        # Search in title, chorus, and addedChorus
+        if (
+            search_field(hymn.get("title", ""))
+            or search_field(hymn.get("chorus", ""))
+            or search_field(hymn.get("addedChorus", ""))
+        ):
+            matches.append(hymn)
+            continue
+
+        # Search in verses
+        verses = hymn.get("verses", [])
+        for verse_group in verses:
+            # Each verse_group is a list of lines, join them into a single string
+            combined = " ".join(str(line) for line in verse_group).lower()
             if term in combined:
                 matches.append(hymn)
                 break  # Avoid duplicates
