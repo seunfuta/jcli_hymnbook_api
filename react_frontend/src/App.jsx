@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Music, AlertCircle } from 'lucide-react';
 
-const HymnSearchApp = () => {
+const App = () => {
   const [hymnNumber, setHymnNumber] = useState('');
   const [hymn, setHymn] = useState(null);
   const [loading, setLoading] = useState(false);
